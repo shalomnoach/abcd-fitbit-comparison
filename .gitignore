@@ -1,0 +1,9 @@
+.DS_Store
+.quarto/
+*.pdf
+
+!outputs/
+!outputs/**
+
+/.quarto/
+**/*.quarto_ipynb
