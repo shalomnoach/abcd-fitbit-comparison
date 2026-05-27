@@ -33,7 +33,7 @@ Included in the repository:
 
 When `config.R` is sourced, missing analysis packages used by the main pipeline are installed automatically.
 
-## Data access {#data-access}
+## Data access
 
 | Dataset | Access details |
 |------------------------------------|------------------------------------|
