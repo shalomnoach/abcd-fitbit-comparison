@@ -88,7 +88,7 @@ Reproducible analyses for this study are available at https://github.com/shalomn
 
 ## Figure
 
-**Figure 1. Comparison of ABCD Fitbit Sleep Duration Distributions With Published Normative Data**
+**Figure 1. ABCD Fitbit-Derived Sleep Duration Compared With Published Pediatric Normative Data**
 
 ```{r}
 #| echo: false
@@ -100,4 +100,4 @@ Reproducible analyses for this study are available at https://github.com/shalomn
 knitr::include_graphics(file.path(outputs_dir, "figure1.png"))
 ```
 
-**Note.** Lines mark the 10th, 50th, and 90th percentiles of estimated sleep duration from each study, with shaded bands spanning the 25th–75th (darker) and 10th–90th (lighter) percentile ranges. Panels A and B show parent-report references from the ZLS[@iglowstein2003] and PSID-CDS[@williams2013], respectively. Panel C shows the meta-analytic best-fit prediction curve from Galland et al.[@galland2018]; circles indicate the individual studies sized proportionately to their weight in the meta-analysis. Panels D, E, and F show actigraphy-based references from NHANES[@freeman2026], FFCWS[@ffcwsdaily2023], and PATS[@redline2023pats], respectively. ABCD = Adolescent Brain Cognitive Development Study; FFCWS = Future of Families and Child Wellbeing Study; NHANES = National Health and Nutrition Examination Survey; PATS = Pediatric Adenotonsillectomy Trial for Snoring; PSID-CDS = Panel Study of Income Dynamics Child Development Supplement; ZLS = Zurich Longitudinal Studies.
+**Note.** Lines show the 10th, 50th, and 90th percentile curves of estimated sleep duration from each study compared to ABCD. Shaded bands span the 25th–75th percentile range (darker) and the 10th–90th percentile range (lighter). Panels A and B show parent-report references (ZLS[@iglowstein2003], PSID-CDS[@williams2013]). Panel C shows the meta-analytic prediction curve from Galland et al.[@galland2018], with circles representing the contributing studies sized in proportion to their meta-analytic weight. Panels D, E, and F show actigraphy-based references (NHANES[@freeman2026], FFCWS[@ffcwsdaily2023], PATS[@redline2023pats]). ABCD = Adolescent Brain Cognitive Development Study; FFCWS = Future of Families and Child Wellbeing Study; NHANES = National Health and Nutrition Examination Survey; PATS = Pediatric Adenotonsillectomy Trial for Snoring; PSID-CDS = Panel Study of Income Dynamics Child Development Supplement; ZLS = Zurich Longitudinal Studies.
