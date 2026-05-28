@@ -90,7 +90,8 @@ This writes the analysis products to `outputs/`, including:
 - `pats-percentiles.csv`
 - `abcd-summary.rds`
 - `diffs.rds`
-- `figure1.png`
+- `figure1.tiff`
+- `figure1.png` (used for manuscript rendering)
 
 ### 4. Render the manuscript
 

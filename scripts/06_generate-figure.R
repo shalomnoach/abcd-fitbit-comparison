@@ -60,19 +60,35 @@ galland_metareg_preds <- predict(
 )
 
 galland_predictions <- data.frame(
-  age      = galland_pred_ages,
+  age = galland_pred_ages,
   duration = galland_metareg_preds$fit,
-  se_fit   = galland_metareg_preds$se.fit,
-  ymin     = galland_metareg_preds$fit - galland_metareg_preds$se.fit,
-  ymax     = galland_metareg_preds$fit + galland_metareg_preds$se.fit
+  se_fit = galland_metareg_preds$se.fit,
+  ymin = galland_metareg_preds$fit - galland_metareg_preds$se.fit,
+  ymax = galland_metareg_preds$fit + galland_metareg_preds$se.fit
 )
 
 abcd_figure_percentiles <- abcd_percentiles
 
-abcd_loess_p10 <- loess(p10 ~ age_mid, data = abcd_figure_percentiles, span = 0.75)
-abcd_loess_p25 <- loess(p25 ~ age_mid, data = abcd_figure_percentiles, span = 0.75)
-abcd_loess_p75 <- loess(p75 ~ age_mid, data = abcd_figure_percentiles, span = 0.75)
-abcd_loess_p90 <- loess(p90 ~ age_mid, data = abcd_figure_percentiles, span = 0.75)
+abcd_loess_p10 <- loess(
+  p10 ~ age_mid,
+  data = abcd_figure_percentiles,
+  span = 0.75
+)
+abcd_loess_p25 <- loess(
+  p25 ~ age_mid,
+  data = abcd_figure_percentiles,
+  span = 0.75
+)
+abcd_loess_p75 <- loess(
+  p75 ~ age_mid,
+  data = abcd_figure_percentiles,
+  span = 0.75
+)
+abcd_loess_p90 <- loess(
+  p90 ~ age_mid,
+  data = abcd_figure_percentiles,
+  span = 0.75
+)
 
 abcd_pred_ages <- seq(
   min(abcd_figure_percentiles$age_mid),
@@ -644,11 +660,19 @@ sleep_validation_figure <-
   plot_annotation(theme = theme(plot.margin = margin(5, 5, 5, 5)))
 
 ggsave(
+  filename = file.path(outputs_dir, "figure1.tiff"),
+  plot = sleep_validation_figure,
+  width = 12,
+  height = 8,
+  dpi = 300,
+  device = "tiff",
+  compression = "lzw"
+)
+
+ggsave(
   filename = file.path(outputs_dir, "figure1.png"),
   plot = sleep_validation_figure,
   width = 12,
   height = 8,
   dpi = 300
 )
-
-message("Saved outputs/figure1.png")
