@@ -10,6 +10,14 @@ library(readr)
 
 dir.create(outputs_dir, showWarnings = FALSE)
 
+google_fonts_dir <- file.path(tempdir(), "google-fonts")
+dir.create(google_fonts_dir, showWarnings = FALSE, recursive = TRUE)
+
+systemfonts::get_from_google_fonts(
+  family = "Open Sans",
+  dir = google_fonts_dir
+)
+
 ## LOAD INPUTS ----------------------------------------------------------------
 
 abcd_percentiles <- read_csv(
@@ -665,7 +673,7 @@ ggsave(
   width = 12,
   height = 8,
   dpi = 300,
-  device = "tiff",
+  device = ragg::agg_tiff,
   compression = "lzw"
 )
 
@@ -674,5 +682,6 @@ ggsave(
   plot = sleep_validation_figure,
   width = 12,
   height = 8,
-  dpi = 300
+  dpi = 300,
+  device = ragg::agg_png
 )

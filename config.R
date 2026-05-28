@@ -2,7 +2,7 @@
 
 required_packages <- c(
   "dplyr", "haven", "here", "readr", "survey",
-  "ggplot2", "patchwork"
+  "ggplot2", "patchwork", "ragg", "systemfonts"
 )
 missing_packages <- required_packages[!required_packages %in% rownames(installed.packages())]
 if (length(missing_packages) > 0) {
