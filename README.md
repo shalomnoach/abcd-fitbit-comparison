@@ -30,7 +30,7 @@ When `config.R` is sourced, missing analysis packages are installed automaticall
 
 | Dataset | Access details |
 |------------------------------------|------------------------------------|
-| **ABCD Study (release 7.0)** | Apply for a Data Use Certification through the [NIH Brain Development Cohorts (NBDC) Data Hub](https://www.nbdc-datahub.org/). The pipeline reads the release 7.0 Fitbit (`novel_technologies/fitbit/fitbit_ss_sleep_day.parquet`) and demogra (`phenotype/ab_g_stc.parquet`) files directly. |
+| **ABCD Study (release 7.0)** | Apply for a Data Use Certification through the [NIH Brain Development Cohorts (NBDC) Data Hub](https://www.nbdc-datahub.org/). The pipeline reads the release 7.0 Fitbit (`novel_technologies/fitbit/fitbit_ss_sleep_day.parquet`) and demographic (`phenotype/ab_g_stc.parquet`) files directly. |
 | **NHANES 2011-2014 sleep data** | Download `NHANES Preliminary Day Level Output.csv` from the NCI/ICPSR [NHANES 2011-2014 Sleep Data](https://www.datalumos.org/datalumos/project/240826/version/V3/view) release, the CDC demographics files [DEMO_G.xpt (2011-2012)](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2011/DataFiles/DEMO_G.htm), and [DEMO_H.xpt (2013-2014)](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/DEMO_H.htm). |
 | **FFCWS** | Request access through the [National Sleep Research Resource (NSRR)](https://sleepdata.org/datasets/ffcws) and download `ffcws-dataset-0.1.0.csv` and `ffcws-harmonized-dataset-0.1.0.csv`. |
 | **PATS** | Request access through the [NSRR](https://sleepdata.org/datasets/pats) and download `pats-dataset-0.1.0.csv`. |
