@@ -1,0 +1,5 @@
+reference,age_range,reference_overlap_n,signed_difference_h,absolute_difference_h
+NHANES,11–18,"2,112",0.09 (-0.10 to 0.32),0.15 (0.01 to 0.32)
+FFCWS,15–17,919,0.05 (-0.07 to 0.14),0.10 (0.07 to 0.14)
+PATS,11–12,13,-0.32 (-0.33 to -0.32),0.32 (0.32 to 0.33)
+Galland,11–16,-,0.27 (-0.01 to 0.58),0.28 (0.01 to 0.58)
