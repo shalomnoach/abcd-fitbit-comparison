@@ -9,7 +9,7 @@ format:
 
 **Shalom N. Jaffe, MA**^1^**, Eleanor L. McGlinchey, PhD**^1^
 
-^1^ Marion Turpan College of Psychology and Counseling, Fairleigh Dickinson University, Teaneck, New Jersey
+^1^ Marion Turpan College of Psychology and Counseling, Fairleigh Dickinson University
 
 **Author information:**
 
@@ -34,31 +34,83 @@ source(here("scripts", "helpers.R"))
 library(dplyr)
 library(readr)
 
-abcd_percentiles <- read_csv(
-  file.path(outputs_dir, "abcd-percentiles.csv"),
+# Participant-level ABCD rows live in the gitignored data-sets/ folder, so the
+# demographic numbers below require local data access to render. The aggregate
+# results in outputs/ are committed.
+abcd_visits <- read_csv(
+  file.path(data_sets_dir, "cohorts.csv"),
+  show_col_types = FALSE
+) |>
+  filter(dataset == "ABCD")
+modeled_centiles <- read_csv(
+  file.path(outputs_dir, "modeled-centiles.csv"),
   show_col_types = FALSE
 )
-abcd_summary <- readRDS(file.path(outputs_dir, "abcd-summary.rds"))
-diffs <- readRDS(file.path(outputs_dir, "diffs.rds"))
+galland_studies <- read_csv(
+  here("data", "reference", "galland.csv"),
+  show_col_types = FALSE
+) |>
+  rename(age = Age)
+comparison_table <- read_csv(
+  file.path(outputs_dir, "comparison-table.csv"),
+  show_col_types = FALSE
+)
 
-list2env(abcd_summary, envir = environment())
+n_participant_sessions <- nrow(abcd_visits)
+n_unique_youths <- n_distinct(abcd_visits$participant_id)
+mean_age <- mean(abcd_visits$age, na.rm = TRUE)
+min_age <- min(abcd_visits$age, na.rm = TRUE)
+max_age <- max(abcd_visits$age, na.rm = TRUE)
+pct_female <- 100 * mean(abcd_visits$sex == "Female", na.rm = TRUE)
+mean_weighted_duration <- mean(abcd_visits$sleep_hours, na.rm = TRUE)
+sd_weighted_duration <- sd(abcd_visits$sleep_hours, na.rm = TRUE)
+
+abcd_modeled <- modeled_centiles |>
+  filter(.data$dataset == "ABCD")
+modeled_at <- function(column, age) {
+  abcd_modeled[[column]][abcd_modeled$age_center == age]
+}
+p50_age11 <- modeled_at("p50", 11)
+p50_age18 <- modeled_at("p50", 18)
+median_decline <- p50_age11 - p50_age18
+p10_decline <- modeled_at("p10", 11) - modeled_at("p10", 18)
+p90_decline <- modeled_at("p90", 11) - modeled_at("p90", 18)
+mean_p10 <- mean(abcd_modeled$p10, na.rm = TRUE)
+mean_p50 <- mean(abcd_modeled$p50, na.rm = TRUE)
+mean_p90 <- mean(abcd_modeled$p90, na.rm = TRUE)
+
+galland_total <- nrow(galland_studies)
+galland_in_range <- sum(
+  galland_studies$age >= 10.5 & galland_studies$age <= 16.5
+)
+
+tbl_cell <- function(reference, column) {
+  comparison_table[[column]][comparison_table$reference == reference][1]
+}
+fmt_minus <- function(x) gsub("-", "−", x)
 ```
 
 **Introduction:** Sleep duration is one of the most consequential modifiable health behaviors in childhood and adolescence, with insufficient sleep linked to adverse cognitive, emotional, and physical outcomes across development.[@owens_insufficient_2014] Tracking how sleep duration shifts across age groups requires large, representative samples measured with methods that scale beyond the laboratory. Consumer wearables let researchers measure sleep duration in daily life, across multiple nights, and in samples much larger than polysomnography or actigraphy can support. At the same time, they raise a measurement concern—sleep estimates come from proprietary algorithms that researchers cannot always inspect or rescore independently.
 
 The Adolescent Brain Cognitive Development (ABCD) Study[@karcher2021] illustrates this concern. ABCD includes Fitbit-derived sleep variables but does not provide the raw accelerometry data needed to apply pediatric scoring algorithms. Fitbit devices have been evaluated against polysomnography in adults[@dezambotti2018], but pediatric validation is sparser. We therefore compared ABCD Fitbit-derived sleep-duration distributions with published pediatric sleep-duration references to evaluate whether the estimates were plausible at the population level. Alignment with those benchmarks would support that the durations reflect how long children and adolescents in the United States are actually sleeping, not merely what a particular algorithm reports.
 
-**Method:** Fitbit sleep data came from ABCD Study release 7.0. Participant-sessions were included if they had at least 5 valid weekdays and 2 valid weekend days, with weekend days defined as Saturday and Sunday based on the wake date. For each participant-session, we calculated mean sleep duration separately for valid weekdays and weekend days, then combined them into a weighted weekly estimate using ((5 × mean weekday) + (2 × mean weekend)) / 7 to mirror the distribution of weekdays and weekend days.
+**Method:** Fitbit sleep data came from ABCD Study release 7.0; sleep duration was the total sleep period. Participant-sessions were included if they had at least 5 valid weekdays and 2 valid weekend days, with weekend days defined as Saturday and Sunday based on the wake date. For each participant-session, we calculated mean sleep duration separately for valid weekdays and weekend days, then combined them into a weighted weekly estimate using ((5 × mean weekday) + (2 × mean weekend)) / 7 to mirror the distribution of weekdays and weekend days.
 
-We estimated age-specific 10th, 25th, 50th, 75th, and 90th percentiles of Fitbit-derived sleep duration in 0.5-year age bins. We compared these ABCD curves with six published benchmarks: two parent-report references from the Zurich Longitudinal Studies (ZLS)[@iglowstein2003] and the Panel Study of Income Dynamics Child Development Supplement (PSID-CDS)[@williams2013], three actigraphy-based references from National Health and Nutrition Examination Survey (NHANES)[@freeman2026], the Future of Families and Child Wellbeing Study (FFCWS)[@ffcwsdaily2023], and the Pediatric Adenotonsillectomy Trial for Snoring (PATS)[@redline2023pats], and one meta-analytic pediatric prediction curve (based on 57 actigraphy studies)[@galland2018]. To describe rough agreement quantitatively, we also calculated the mean difference and range across overlapping ages, with negative values indicating shorter sleep duration in ABCD compared to the reference data.
+We modeled sleep duration as a smooth function of continuous age with a normal generalized additive model for location, scale, and shape (GAMLSS),[@rigby2005gamlss] using smooth age terms for both the mean and the standard deviation, fit in R with the gamlss2 package.[@umlauf2025gamlss2] We chose this model from candidate normal and log-normal models with linear or smooth age terms, selecting the one with the lowest mean generalized Akaike information criterion across the participant-level datasets (ABCD, NHANES, FFCWS, and PATS). From the fitted distributions, we estimated age-specific 10th, 25th, 50th, 75th, and 90th percentile curves across each dataset's age range.
 
-**Results:** The analytic sample included `r fmt_int(n_participant_visits)` participant-visits from `r fmt_int(n_unique_youths)` unique youths. Mean age was `r fmt2(mean_age)` years (range, `r fmt2(min_age)` to `r fmt2(max_age)`). Mean weighted sleep duration was `r fmt2(mean_weighted_duration)` hours (*SD* = `r fmt2(sd_weighted_duration)`). Across age bins, the median values of the 10th, 50th, and 90th percentile curves were `r fmt2(median_p10)`, `r fmt2(median_p50)`, and `r fmt2(median_p90)` hours, respectively.
+We compared the ABCD curves with four published benchmarks: three actigraphy-based references—the National Health and Nutrition Examination Survey (NHANES),[@freeman2026] the Future of Families and Child Wellbeing Study (FFCWS),[@ffcwsdaily2023] and the Pediatric Adenotonsillectomy Trial for Snoring (PATS),[@redline2023pats]`—`{=typst}and a meta-analytic pediatric prediction curve based on `r galland_total` actigraphy studies.[@galland2018] For numeric comparison, at each overlapping integer age we calculated the difference between the ABCD and reference median curves, and took the mean and range of these signed differences and of their absolute values.
 
-Figure 1 shows the ABCD Fitbit curves overlaid on each published reference. For the parent-report references, the ABCD curves followed a similar age-related pattern but ran systematically below them; mean differences were `r fmt2(diffs$iglowstein$mean)` hours for the ZLS (range, `r fmt_range(diffs$iglowstein$min, diffs$iglowstein$max)`) and `r fmt2(diffs$williams$mean)` hours for PSID-CDS (range, `r fmt_range(diffs$williams$min, diffs$williams$max)`). Agreement was closer for the actigraphy-based references, for which mean differences were `r fmt2(diffs$nhanes$mean)` hours for NHANES (range, `r fmt_range(diffs$nhanes$min, diffs$nhanes$max)`), `r fmt2(diffs$ffcws$mean)` hours for FFCWS (range, `r fmt_range(diffs$ffcws$min, diffs$ffcws$max)`), and `r fmt2(diffs$pats$mean)` hours for PATS (range, `r fmt_range(diffs$pats$min, diffs$pats$max)`). The mean difference from the meta-analytic prediction curve was `r fmt2(diffs$galland$mean)` hours (range, `r fmt_range(diffs$galland$min, diffs$galland$max)`).
+**Results:** The analytic sample comprised `r fmt_int(n_participant_sessions)` participant-sessions from `r fmt_int(n_unique_youths)` unique youths. Mean age was `r fmt2(mean_age)` years (range, `r fmt2(min_age)`–`r fmt2(max_age)` years; `r fmt2(pct_female)`% female), and mean weighted weekly sleep duration was `r fmt2(mean_weighted_duration)` hours (*SD*, `r fmt2(sd_weighted_duration)`). The model-estimated median declined from `r fmt2(p50_age11)` hours at age 11 to `r fmt2(p50_age18)` hours at age 18, a decrease of `r fmt2(median_decline)` hours, with similar declines at the 10th and 90th percentiles (`r fmt2(p10_decline)` and `r fmt2(p90_decline)` hours, respectively). The mean values of the model-estimated 10th-, 50th-, and 90th-percentile curves across integer ages were `r fmt2(mean_p10)`, `r fmt2(mean_p50)`, and `r fmt2(mean_p90)` hours, respectively.
 
-**Discussion:** Compared with published pediatric sleep-duration references, ABCD Fitbit-derived estimates were systematically shorter than parent-report norms but close to objective actigraphy-based benchmarks. This pattern is consistent with prior evidence that, in ABCD and elsewhere, parent and youth reports tend to overestimate sleep duration relative to device-derived estimates.[@feldman2026]
+Figure 1 shows the ABCD curves overlaid on each objective benchmark, and Table 1 reports the average, minimum, and maximum differences between ABCD and each reference at overlapping integer ages. Agreement was close with the actigraphy-based references, most strongly for NHANES and FFCWS, whose distributions tracked the ABCD curves across the overlapping ages. Overlap with PATS was limited to the youngest ages and a few participants; even so, where the two overlapped the ABCD curve appeared to continue the PATS trajectory rather than break sharply from it. Differences from the meta-analytic prediction curve were small overall but largest at the older end of the overlapping range, where the quadratic curve declined more steeply than the ABCD mean.
+
+**Discussion:** Compared with published pediatric sleep-duration references, ABCD Fitbit-derived estimates were close to objective actigraphy-based benchmarks and declined similarly with age. At the population level, then, the Fitbit estimates describe adolescent sleep much as actigraphy-based norms do.
 
 Population-level alignment, however, is not the same as individual-level accuracy. Two scoring algorithms could yield very different per-night or per-person estimates and still produce similar age-conditional distributions, if systematic over- and underestimation cancel across the sample. Establishing whether any given Fitbit estimate is close to the truth requires paired comparisons in the ABCD Fitbit subsample against polysomnography or research-grade actigraphy. Despite these limitations, the close alignment with objectively measured pediatric sleep benchmarks increases our confidence in the validity of the Fitbit-derived estimates and their use in advancing pediatric sleep science.
+
+```{=typst}
+#pagebreak()
+```
 
 **Conflict of Interest Disclosures:** None reported.
 
@@ -75,6 +127,10 @@ ABCD Consortium investigators designed and implemented the study and/or provided
 Reproducible analyses for this study are available at https://github.com/shalomnoach/abcd-fitbit-comparison.
 
 ```{=typst}
+#pagebreak()
+```
+
+```{=typst}
 #bibliography(
   "comparison-letter-references.bib",
   style: "american-medical-association",
@@ -86,18 +142,33 @@ Reproducible analyses for this study are available at https://github.com/shalomn
 #pagebreak()
 ```
 
-## Figure
+**Table 1. Average Differences Between ABCD Fitbit-Derived Sleep Duration and Pediatric Actigraphy References**
 
-**Figure 1. ABCD Fitbit-Derived Sleep Duration Compared With Published Pediatric Normative Data**
+| Reference data | Overlapping ages, years | Reference data overlapping n | Mean (range) signed difference, hours | Mean (range) absolute difference, hours |
+|:---|:---|:---|:---|:---|
+| NHANES[@freeman2026] | `r tbl_cell("NHANES", "age_range")` | `r tbl_cell("NHANES", "reference_overlap_n")` | `r fmt_minus(tbl_cell("NHANES", "signed_difference_h"))` | `r fmt_minus(tbl_cell("NHANES", "absolute_difference_h"))` |
+| FFCWS[@ffcwsdaily2023] | `r tbl_cell("FFCWS", "age_range")` | `r tbl_cell("FFCWS", "reference_overlap_n")` | `r fmt_minus(tbl_cell("FFCWS", "signed_difference_h"))` | `r fmt_minus(tbl_cell("FFCWS", "absolute_difference_h"))` |
+| PATS[@redline2023pats] | `r tbl_cell("PATS", "age_range")` | `r tbl_cell("PATS", "reference_overlap_n")` | `r fmt_minus(tbl_cell("PATS", "signed_difference_h"))` | `r fmt_minus(tbl_cell("PATS", "absolute_difference_h"))` |
+| Galland BC et al. 2018[@galland2018] | `r tbl_cell("Galland", "age_range")` | `r tbl_cell("Galland", "reference_overlap_n")` | `r fmt_minus(tbl_cell("Galland", "signed_difference_h"))` | `r fmt_minus(tbl_cell("Galland", "absolute_difference_h"))` |
+
+**Note.** Positive values indicate longer estimated sleep in ABCD. The Galland et al.[@galland2018] meta-analytic curve is based on `r galland_total` studies, `r galland_in_range` of which fall in the ABCD age range. ABCD = Adolescent Brain Cognitive Development Study; FFCWS = Future of Families and Child Wellbeing Study; NHANES = National Health and Nutrition Examination Survey; PATS = Pediatric Adenotonsillectomy Trial for Snoring.
+
+```{=typst}
+#pagebreak()
+```
+
+**Figure 1. ABCD Fitbit-Derived Sleep Duration Compared With Pediatric Actigraphy Data**
 
 ```{r}
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-width: 12
+#| fig-width: 10
 #| fig-height: 8
 #| out-width: "100%"
-knitr::include_graphics(file.path(outputs_dir, "figure1.png"))
+knitr::include_graphics(
+  file.path(outputs_dir, "figure1.png")
+)
 ```
 
-**Note.** Lines show the 10th, 50th, and 90th percentile curves of estimated sleep duration from each study compared to ABCD. Shaded bands span the 25th–75th percentile range (darker) and the 10th–90th percentile range (lighter). Panels A and B show parent-report references (ZLS[@iglowstein2003], PSID-CDS[@williams2013]). Panel C shows the meta-analytic prediction curve from Galland et al.[@galland2018], with circles representing the contributing studies sized in proportion to their meta-analytic weight. Panels D, E, and F show actigraphy-based references (NHANES[@freeman2026], FFCWS[@ffcwsdaily2023], PATS[@redline2023pats]). ABCD = Adolescent Brain Cognitive Development Study; FFCWS = Future of Families and Child Wellbeing Study; NHANES = National Health and Nutrition Examination Survey; PATS = Pediatric Adenotonsillectomy Trial for Snoring; PSID-CDS = Panel Study of Income Dynamics Child Development Supplement; ZLS = Zurich Longitudinal Studies.
+**Note.** Lines show the 10th, 50th, and 90th percentile curves of estimated sleep duration from each study compared to ABCD. Shaded bands span the 25th–75th percentile range (darker) and the 10th–90th percentile range (lighter). Panels A–C show the actigraphy-based references, NHANES,[@freeman2026] FFCWS,[@ffcwsdaily2023] and PATS.[@redline2023pats] Panel D shows the quadratic meta-analytic prediction curve from Galland et al.,[@galland2018] with circles representing the contributing studies sized in proportion to their meta-analytic weight. ABCD = Adolescent Brain Cognitive Development Study; FFCWS = Future of Families and Child Wellbeing Study; NHANES = National Health and Nutrition Examination Survey; PATS = Pediatric Adenotonsillectomy Trial for Snoring.
