@@ -4,77 +4,46 @@ Reproducible analysis code and manuscript source for:
 
 **Jaffe SN, McGlinchey EL. "Comparing Objectively Estimated Sleep Duration in ABCD With Published Norms"**
 
-This repository reproduces the analytic outputs, primary figure, and manuscript PDF comparing Fitbit-derived sleep duration in the ABCD Study with published pediatric sleep-duration references.
+This repository reproduces the analytic outputs, Figure 1, Table 1, and the manuscript PDF comparing Fitbit-derived sleep duration in the ABCD Study with published objective pediatric sleep-duration benchmarks (NHANES, FFCWS, PATS, and the Galland et al. meta-analytic curve), using normal location-scale GAMLSS models fit with `gamlss2`.
 
 Restricted raw data are **not** distributed with this repository. Reproduction requires approved access to ABCD, FFCWS, and PATS, plus download of the NHANES files listed below.
 
-## Project overview
+## Pipeline
 
-The workflow has two stages:
+The analysis runs as three sequential scripts. (All 3 can be run in order using `scripts/run-all.R`)
 
-1.  Prepare a local ABCD sleep `.rds` file from ABCD (release 7.0) `.parquet` files.
-2.  Run the analysis pipeline to generate percentile curves, comparison summaries, Figure 1, and the manuscript PDF.
+1.  `scripts/01_prepare-cohorts.R`: standardize ABCD, NHANES, FFCWS, and PATS into shared participant-level tables and 1-year age windows.
+2.  `scripts/02_compute-centiles.R`: compute age-windowed empirical centiles (survey-weighted for NHANES) used as model-selection targets.
+3.  `scripts/03_fit-gamlss.R`: fit candidate normal and log-normal GAMLSS models, select a common specification by mean GAIC, predict percentile curves, build the reference comparisons and Table 1, and render Figure 1.
 
-Included in the repository:
-
-- `scripts/00_prepare-abcd.R`: one-time preparation of the restricted ABCD source files
-- `scripts/01_process-abcd.R` to `scripts/06_generate-figure.R`: analysis pipeline
-- `config.R`: local file paths and analysis package setup
-- `data/reference/`: included reference curves reconstructed from published sources
-- `outputs/`: generated analysis products
-- `manuscript.qmd`: manuscript source
+Shared functions live in `scripts/helpers.R` (formatting, age windows, centiles, comparisons) and `scripts/gamlss-helpers.R` (the `gamlss2` families and model-fitting framework).
 
 ## Requirements
 
 - R
 - Quarto
 - Access to the external datasets listed in [Data access](#data-access)
-- For the ABCD preparation step: `arrow`, `dplyr`, and `here`
 
-When `config.R` is sourced, missing analysis packages used by the main pipeline are installed automatically.
+When `config.R` is sourced, missing analysis packages are installed automatically.
 
-## Data access
+## Data access {#data-access}
 
 | Dataset | Access details |
 |------------------------------------|------------------------------------|
-| **ABCD Study (release 7.0)** | Apply for a Data Use Certification through the [NIH Brain Development Cohorts (NBDC) Data Hub](https://www.nbdc-datahub.org/). |
+| **ABCD Study (release 7.0)** | Apply for a Data Use Certification through the [NIH Brain Development Cohorts (NBDC) Data Hub](https://www.nbdc-datahub.org/). The pipeline reads the release 7.0 Fitbit (`novel_technologies/fitbit/fitbit_ss_sleep_day.parquet`) and demogra (`phenotype/ab_g_stc.parquet`) files directly. |
 | **NHANES 2011-2014 sleep data** | Download `NHANES Preliminary Day Level Output.csv` from the NCI/ICPSR [NHANES 2011-2014 Sleep Data](https://www.datalumos.org/datalumos/project/240826/version/V3/view) release, the CDC demographics files [DEMO_G.xpt (2011-2012)](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2011/DataFiles/DEMO_G.htm), and [DEMO_H.xpt (2013-2014)](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/DEMO_H.htm). |
 | **FFCWS** | Request access through the [National Sleep Research Resource (NSRR)](https://sleepdata.org/datasets/ffcws) and download `ffcws-dataset-0.1.0.csv` and `ffcws-harmonized-dataset-0.1.0.csv`. |
 | **PATS** | Request access through the [NSRR](https://sleepdata.org/datasets/pats) and download `pats-dataset-0.1.0.csv`. |
 
-The reconstructed data used for the Iglowstein and Williams comparison curves are already included in `data/reference/`.
+The data from the individual published studies used by Galland et al. in their meta-analysis are included in `data/reference/galland.csv`.
 
 ## Reproducing the analysis
 
-### 1. Prepare the ABCD sleep file
+### 1. Configure local dataset paths
 
-After obtaining ABCD access, download these release 7.0 files:
+Open `config.R` and update `abcd_fitbit_path`, `abcd_stc_path`, `nhanes_sleep_path`, `nhanes_demo_paths`, `ffcws_sleep_path`, `ffcws_demo_path`, and `pats_path`. All paths are resolved relative to the repository root with `here::here()`.
 
-- `novel_technologies/fitbit/fitbit_ss_sleep_day.parquet`
-- `phenotype/ab_g_stc.parquet`
-
-If your local data live elsewhere, update the paths at the top of `scripts/00_prepare-abcd.R`, then run:
-
-``` bash
-Rscript scripts/00_prepare-abcd.R
-```
-
-This creates a local `sleep_data_complete_abcd70.rds` file used by the downstream pipeline. You only need to do this once.
-
-### 2. Configure local dataset paths
-
-Open `config.R` and update:
-
-- `abcd_rds_path`
-- `nhanes_sleep_path`
-- `nhanes_demo_paths`
-- `ffcws_sleep_path`
-- `ffcws_demo_path`
-- `pats_path`
-
-All paths are resolved relative to the repository root with `here::here()`.
-
-### 3. Generate analysis outputs
+### 2. Generate analysis outputs
 
 From the repository root, run:
 
@@ -82,18 +51,13 @@ From the repository root, run:
 Rscript scripts/run-all.R
 ```
 
-This writes the analysis products to `outputs/`, including:
+Standardized participant-level cohorts are written to `data-sets/cohorts.csv` (not included here per the data-use agreements). The aggregate outputs are:
 
-- `abcd-percentiles.csv`
-- `nhanes-percentiles.csv`
-- `ffcws-percentiles.csv`
-- `pats-percentiles.csv`
-- `abcd-summary.rds`
-- `diffs.rds`
-- `figure1.tiff`
-- `figure1.png` (used for manuscript rendering)
+- `outputs/modeled-centiles.csv`: modeled GAMLSS percentile curves
+- `outputs/comparison-table.csv`: per-age differences against the reference curves (Table 1)
+- `outputs/figure1.png` and `outputs/figure1.tiff`: Figure 1
 
-### 4. Render the manuscript
+### 3. Render the manuscript
 
 ``` bash
 quarto render manuscript.qmd
@@ -106,16 +70,16 @@ This produces `manuscript.pdf` in the repository root.
 ``` text
 abcd-fitbit-comparison/
 |-- config.R
-|-- data/reference/
+|-- comparison-letter-references.bib
+|-- data/reference/galland.csv
 |-- outputs/
 |-- scripts/
-|   |-- 00_prepare-abcd.R
-|   |-- 01_process-abcd.R
-|   |-- 02_process-nhanes.R
-|   |-- 03_process-ffcws.R
-|   |-- 04_process-pats.R
-|   |-- 05_compute-diffs.R
-|   `-- 06_generate-figure.R
+|   |-- helpers.R
+|   |-- gamlss-helpers.R
+|   |-- 01_prepare-cohorts.R
+|   |-- 02_compute-centiles.R
+|   |-- 03_fit-gamlss.R
+|   `-- run-all.R
 |-- manuscript.qmd
 `-- README.md
 ```
