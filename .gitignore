@@ -1,9 +1,14 @@
 .DS_Store
 .quarto/
 *.pdf
+archive/
+
+# Prepared participant-level data — never committed (data-use agreements)
+data-sets/
 
 !outputs/
 !outputs/**
+outputs/**/.DS_Store
 
 /.quarto/
 **/*.quarto_ipynb
