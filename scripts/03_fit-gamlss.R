@@ -66,6 +66,7 @@ selected <- lapply(analysis_datasets, function(d) {
 
 modeled_centiles <- bind_rows(lapply(selected, `[[`, "centiles"))
 modeled_curves <- bind_rows(lapply(selected, `[[`, "curves"))
+modeled_parameters <- bind_rows(lapply(selected, `[[`, "parameters"))
 
 ## MODEL-SELECTION DIAGNOSTICS -------------------------------------------------
 
@@ -89,22 +90,119 @@ compute_ordering_checks(modeled_centiles) |>
 
 print(model_vs_empirical(modeled_centiles, empirical_centiles))
 
+## DISTRIBUTION SIMILARITY -----------------------------------------------------
+
+compute_bhattacharyya_coefficient <- function(mu1, sigma1, mu2, sigma2) {
+  distance <- fpc::bhattacharyya.dist(
+    mu1 = mu1,
+    mu2 = mu2,
+    Sigma1 = matrix(sigma1^2, nrow = 1),
+    Sigma2 = matrix(sigma2^2, nrow = 1)
+  )
+  unname(exp(-distance))
+}
+
+distribution_similarity_by_age <- modeled_parameters |>
+  filter(dataset == "ABCD") |>
+  select(
+    age_center,
+    abcd_mu = mu,
+    abcd_sigma = sigma
+  ) |>
+  inner_join(
+    modeled_parameters |>
+      filter(dataset != "ABCD") |>
+      rename(
+        reference = dataset,
+        reference_mu = mu,
+        reference_sigma = sigma
+      ),
+    by = "age_center"
+  ) |>
+  mutate(
+    bhattacharyya_coefficient = mapply(
+      compute_bhattacharyya_coefficient,
+      abcd_mu,
+      abcd_sigma,
+      reference_mu,
+      reference_sigma
+    )
+  )
+
+distribution_similarity_table <- distribution_similarity_by_age |>
+  group_by(reference) |>
+  summarise(
+    bhattacharyya_mean = mean(bhattacharyya_coefficient),
+    bhattacharyya_min = min(bhattacharyya_coefficient),
+    bhattacharyya_max = max(bhattacharyya_coefficient),
+    .groups = "drop"
+  ) |>
+  transmute(
+    reference,
+    bhattacharyya_coefficient = sprintf(
+      "%.2f (%.2f to %.2f)",
+      bhattacharyya_mean,
+      bhattacharyya_min,
+      bhattacharyya_max
+    )
+  ) |>
+  arrange(match(reference, setdiff(analysis_datasets, "ABCD")))
+
 ## GALLAND PUBLISHED CURVE -----------------------------------------------------
 
 galland_sleep_duration <- function(age) 9.02 - 1.04 * (((age / 10)^2) - 0.83)
+
+galland_model <- metafor::rma(
+  yi = duration,
+  sei = se,
+  mods = ~ I(age^2),
+  data = galland_studies,
+  method = "REML",
+  test = "knha"
+)
 
 galland_means <- tibble(
   age_center = 1:16,
   mean_sleep = galland_sleep_duration(1:16)
 )
 galland_curve <- tibble(
-  age = seq(min(galland_studies$age), max(galland_studies$age), by = 0.1)
-) |>
-  mutate(mean_sleep = galland_sleep_duration(age))
+  age = seq(min(galland_studies$age), 16, by = 0.1)
+)
+galland_curve_prediction <- stats::predict(
+  galland_model,
+  newmods = galland_curve$age^2,
+  level = 95
+)
+galland_curve <- galland_curve |>
+  mutate(
+    mean_sleep = as.numeric(galland_curve_prediction$pred),
+    prediction_limit_lower = as.numeric(galland_curve_prediction$pi.lb),
+    prediction_limit_upper = as.numeric(galland_curve_prediction$pi.ub)
+  )
 
 ## COMPARISON TABLE (Table 1) --------------------------------------------------
 
 abcd_modeled <- filter(modeled_centiles, dataset == "ABCD")
+
+galland_prediction_table <- abcd_modeled |>
+  filter(age_center <= 16) |>
+  transmute(
+    age = age_center,
+    abcd_modeled_mean = mean_sleep
+  )
+galland_age_prediction <- stats::predict(
+  galland_model,
+  newmods = galland_prediction_table$age^2,
+  level = 95
+)
+galland_prediction_table <- galland_prediction_table |>
+  mutate(
+    galland_predicted_mean = as.numeric(galland_age_prediction$pred),
+    prediction_limit_lower = as.numeric(galland_age_prediction$pi.lb),
+    prediction_limit_upper = as.numeric(galland_age_prediction$pi.ub)
+  )
+
+print(galland_prediction_table, n = Inf, width = Inf)
 
 # Sum of reference participants over the ages shared with ABCD.
 overlap_n <- function(reference) {
@@ -162,7 +260,47 @@ comparison_table <- bind_rows(
     overlap_n(filter(modeled_centiles, dataset == "PATS"))
   ),
   comparison_row("Galland", galland_means, "mean_sleep", "-")
+) |>
+  left_join(
+    distribution_similarity_table |>
+      select(reference, bhattacharyya_coefficient),
+    by = "reference"
+  )
+
+selected_filliben <- tibble(
+  reference = analysis_datasets,
+  reference_filliben_r = vapply(
+    selected,
+    `[[`,
+    numeric(1),
+    "filliben_r"
+  )
 )
+abcd_filliben_r <- selected_filliben$reference_filliben_r[
+  selected_filliben$reference == "ABCD"
+]
+
+comparison_table <- comparison_table |>
+  left_join(
+    filter(selected_filliben, reference != "ABCD"),
+    by = "reference"
+  ) |>
+  mutate(
+    bhattacharyya_coefficient = coalesce(
+      bhattacharyya_coefficient,
+      "—"
+    ),
+    gamlss_filliben_r_abcd_reference = if_else(
+      is.na(reference_filliben_r),
+      sprintf("%.3f/—", abcd_filliben_r),
+      sprintf(
+        "%.3f/%.3f",
+        abcd_filliben_r,
+        reference_filliben_r
+      )
+    )
+  ) |>
+  select(-reference_filliben_r)
 
 print(comparison_table)
 
@@ -325,6 +463,16 @@ plot_pats <- centile_panel("PATS", "C", "PATS", pats_color)
 
 plot_galland <- ggplot() +
   distribution_layers(abcd_curve, abcd_color) +
+  geom_ribbon(
+    data = galland_curve,
+    aes(
+      x = age,
+      ymin = prediction_limit_lower,
+      ymax = prediction_limit_upper
+    ),
+    fill = galland_color,
+    alpha = 0.15
+  ) +
   geom_point(
     data = galland_studies,
     aes(x = age, y = duration, size = 1 / se),

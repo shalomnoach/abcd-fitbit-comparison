@@ -3,7 +3,6 @@
 *.pdf
 archive/
 
-# Prepared participant-level data — never committed (data-use agreements)
 data-sets/
 
 !outputs/

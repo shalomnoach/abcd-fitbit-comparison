@@ -1,8 +1,8 @@
 ## PACKAGES -------------------------------------------------------------------
 
 required_packages <- c(
-  "arrow", "dplyr", "haven", "here", "readr", "survey",
-  "gamlss2", "mgcv", "ggplot2", "patchwork", "ragg", "systemfonts"
+  "arrow", "dplyr", "fpc", "gamlss2", "ggplot2", "haven", "here",
+  "metafor", "mgcv", "patchwork", "ragg", "readr", "survey", "systemfonts"
 )
 missing_packages <- required_packages[!required_packages %in% rownames(installed.packages())]
 if (length(missing_packages) > 0) {

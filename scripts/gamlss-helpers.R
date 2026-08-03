@@ -180,6 +180,18 @@ predict_centiles <- function(model, newdata) {
   )
 }
 
+predict_parameters <- function(model, newdata) {
+  parameters <- predict(
+    model,
+    newdata = newdata,
+    type = "parameter"
+  )
+  tibble::tibble(
+    mu = as.numeric(parameters$mu),
+    sigma = as.numeric(parameters$sigma)
+  )
+}
+
 score_against_empirical <- function(center_table, empirical_targets) {
   joined <- center_table |>
     select("dataset", "age_center", all_of(empirical_point_columns)) |>
@@ -196,6 +208,33 @@ score_against_empirical <- function(center_table, empirical_targets) {
     joined[[paste0(p, "_modeled")]] - joined[[paste0(p, "_empirical")]]
   }))
   mean(abs(diffs), na.rm = TRUE)
+}
+
+compute_filliben_coefficient <- function(model) {
+  quantile_residuals <- as.numeric(stats::residuals(
+    model,
+    type = "quantile"
+  ))
+  quantile_residuals <- sort(quantile_residuals[
+    is.finite(quantile_residuals)
+  ])
+  n_residuals <- length(quantile_residuals)
+
+  if (n_residuals < 3L) {
+    return(NA_real_)
+  }
+
+  probabilities <- (seq_len(n_residuals) - 0.3175) /
+    (n_residuals + 0.365)
+  probabilities[c(1L, n_residuals)] <- c(
+    1 - 0.5^(1 / n_residuals),
+    0.5^(1 / n_residuals)
+  )
+
+  stats::cor(
+    quantile_residuals,
+    stats::qnorm(probabilities)
+  )
 }
 
 fit_dataset_candidates <- function(df, dataset, empirical_targets) {
@@ -323,14 +362,24 @@ select_global_model <- function(diagnostics) {
 
 materialise_candidate <- function(candidate) {
   curve_ages <- seq(candidate$report_min, candidate$report_max, by = 0.1)
+  center_ages <- candidate$center_table$age_center
   curves <- bind_cols(
     tibble(dataset = candidate$dataset, age = curve_ages),
     predict_centiles(candidate$fit, tibble(age = curve_ages, model_weight = 1))
   )
+  parameters <- bind_cols(
+    tibble(dataset = candidate$dataset, age_center = center_ages),
+    predict_parameters(
+      candidate$fit,
+      tibble(age = center_ages, model_weight = 1)
+    )
+  )
   list(
     centiles = candidate$center_table |>
       select("dataset", "age_center", "n", all_of(empirical_point_columns)),
-    curves = curves
+    curves = curves,
+    parameters = parameters,
+    filliben_r = compute_filliben_coefficient(candidate$fit)
   )
 }
 
