@@ -26,7 +26,7 @@ Shared functions live in `scripts/helpers.R` (formatting, age windows, centiles,
 
 When `config.R` is sourced, missing analysis packages are installed automatically.
 
-## Data access {#data-access}
+## Data access
 
 | Dataset | Access details |
 |------------------------------------|------------------------------------|
