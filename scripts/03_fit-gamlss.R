@@ -517,3 +517,13 @@ ggsave(
   device = ragg::agg_tiff,
   compression = "lzw"
 )
+# Vector version for production; cairo_pdf keeps the alpha-blended ribbons as
+# vectors and embeds the Open Sans faces so the text matches the raster exports.
+ggsave(
+  filename = file.path(outputs_dir, "figure1.pdf"),
+  plot = figure1,
+  width = 10,
+  height = 8,
+  units = "in",
+  device = grDevices::cairo_pdf
+)
