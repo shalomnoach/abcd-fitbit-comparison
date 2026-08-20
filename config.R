@@ -22,14 +22,14 @@ abcd_fitbit_path <- here(
 abcd_stc_path <- here(
   "..", "Dissertation Data", "abcd", "rawdata", "phenotype", "ab_g_stc.parquet"
 )
-nhanes_sleep_path <- here("..", "Dissertation", "nhanes", "datasets", "NHANES Preliminary Day Level Output.csv")
+nhanes_sleep_path <- here("..", "Dissertation", "data", "external", "nhanes", "datasets", "NHANES Preliminary Day Level Output.csv")
 nhanes_demo_paths <- c(
-  here("..", "Dissertation", "nhanes", "datasets", "DEMO_G.xpt"),
-  here("..", "Dissertation", "nhanes", "datasets", "DEMO_H.xpt")
+  here("..", "Dissertation", "data", "external", "nhanes", "datasets", "DEMO_G.xpt"),
+  here("..", "Dissertation", "data", "external", "nhanes", "datasets", "DEMO_H.xpt")
 )
-ffcws_sleep_path <- here("..", "Dissertation", "ffcws", "datasets", "ffcws-dataset-0.1.0.csv")
-ffcws_demo_path <- here("..", "Dissertation", "ffcws", "datasets", "ffcws-harmonized-dataset-0.1.0.csv")
-pats_path <- here("..", "Dissertation", "pats", "datasets", "pats-dataset-0.1.0.csv")
+ffcws_sleep_path <- here("..", "Dissertation", "data", "external", "ffcws", "datasets", "ffcws-dataset-0.1.0.csv")
+ffcws_demo_path <- here("..", "Dissertation", "data", "external", "ffcws", "datasets", "ffcws-harmonized-dataset-0.1.0.csv")
+pats_path <- here("..", "Dissertation", "data", "external", "pats", "datasets", "pats-dataset-0.1.0.csv")
 
 # Prepared participant-level data is written here and is gitignored; only the
 # aggregate artifacts in outputs/ are committed.
