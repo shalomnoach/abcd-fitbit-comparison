@@ -184,6 +184,15 @@ galland_curve <- galland_curve |>
 
 abcd_modeled <- filter(modeled_centiles, dataset == "ABCD")
 
+print(tibble(
+  n_female_sessions = sum(cohorts$sex[cohorts$dataset == "ABCD"] == "Female", na.rm = TRUE),
+  iqr_age11 = sprintf("%.2f–%.2f", abcd_modeled$p25[abcd_modeled$age_center == 11], abcd_modeled$p75[abcd_modeled$age_center == 11]),
+  iqr_age18 = sprintf("%.2f–%.2f", abcd_modeled$p25[abcd_modeled$age_center == 18], abcd_modeled$p75[abcd_modeled$age_center == 18]),
+  sd_p10 = round(sd(abcd_modeled$p10), 2),
+  sd_p50 = round(sd(abcd_modeled$p50), 2),
+  sd_p90 = round(sd(abcd_modeled$p90), 2)
+))
+
 galland_prediction_table <- abcd_modeled |>
   filter(age_center <= 16) |>
   transmute(
